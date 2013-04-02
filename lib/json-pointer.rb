@@ -53,10 +53,11 @@ class JsonPointer
     fragment = fragments.shift
     case obj
     when Hash
+      key = fragment_to_key(fragment)
       obj = if options[:create_missing]
-        obj[fragment_to_key(fragment)] ||= Hash.new
+        obj[key] ||= Hash.new
       else
-        obj[fragment_to_key(fragment)]
+        obj.has_key?(key) ? obj[key] : NotFound.new
       end
 
       get_target_member(obj, fragments, options, &block)
@@ -66,10 +67,11 @@ class JsonPointer
           get_target_member(i || Hash.new, fragments.dup, options, &block)
         end
       else
+        index = fragment_to_index(fragment)
         obj = if options[:create_missing]
-          obj[fragment_to_index(fragment)] ||= Hash.new
+          obj[index] ||= Hash.new
         else
-          obj[fragment_to_index(fragment)]
+          index >= obj.size ? NotFound.new : obj[index]
         end
 
         get_target_member(obj, fragments, &block)

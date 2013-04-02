@@ -78,6 +78,14 @@ describe JsonPointer do
       let(:path) { %(/fire/water/wind) }
 
       it_behaves_like "a checker method"
+
+      context "when not existant" do
+        let(:path) { %(/foo) }
+
+        it "returns false" do
+          expect(pointer.exists?).to be_false
+        end
+      end
     end
   end
 
