@@ -2,6 +2,7 @@ require "json-pointer/version"
 
 class JsonPointer
 
+  NotFound = Class.new
   WILDCARD = "*".freeze
 
   def initialize(hash, path, options = {})
@@ -23,7 +24,7 @@ class JsonPointer
   def exists?
     _exists = false
     get_target_member(@hash, path_fragments.dup) do |target|
-      _exists = true if target
+      _exists = true unless NotFound === target
     end
     _exists
   end
@@ -73,6 +74,8 @@ class JsonPointer
 
         get_target_member(obj, fragments, &block)
       end
+    else
+      NotFound.new
     end
   end
 

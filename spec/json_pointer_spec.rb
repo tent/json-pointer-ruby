@@ -33,6 +33,13 @@ describe JsonPointer do
         end
       end
 
+      context "when member exists and is nil" do
+        it "returns true" do
+          pointer.value = nil
+          expect(pointer.exists?).to be_true
+        end
+      end
+
       context "when member doesn't exist" do
         let(:hash) { Hash.new }
 
