@@ -1,4 +1,4 @@
-# JsonPointer
+# JsonPointer [![Build Status](https://travis-ci.org/tent/json-pointer-ruby.png)](https://travis-ci.org/tent/json-pointer-ruby)
 
 [JSON Pointer](http://tools.ietf.org/html/draft-ietf-appsawg-json-pointer-09) implementation.
 
