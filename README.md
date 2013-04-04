@@ -47,6 +47,12 @@ pointer = JsonPointer.new(hash, "/foo/bar/1", :symbolize_keys => true)
 pointer.value = { :baz => "foo" }
 hash[:foo][:bar] # => [{ :baz => "foobar" }, { :baz => "foo" }, { :hello => "world" }, { :baz => "water" }]
 
+## Append member to array
+
+pointer = JsonPointer.new(hash, "/foo/bar/-", :symbolize_keys => true)
+pointer.value = { :baz => "bar" }
+hash[:foo][:bar] # => [{ :baz => "foobar" }, { :baz => "foo" }, { :hello => "world" }, { :baz => "water" }, { :baz => "bar" }]
+
 ## Delete array member
 
 pointer = JsonPointer.new(hash, "/foo/bar/1", :symbolize_keys => true)

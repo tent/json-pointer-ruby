@@ -4,6 +4,7 @@ class JsonPointer
 
   NotFound = Class.new
   WILDCARD = "*".freeze
+  ARRAY_PUSH_KEY = '-'.freeze
 
   def initialize(hash, path, options = {})
     @hash, @path, @options = hash, path, options
@@ -88,7 +89,29 @@ class JsonPointer
     return if fragments.empty?
 
     target_fragment = fragments.pop
+
+    if target_fragment == ARRAY_PUSH_KEY
+      target_parent_fragment = fragments.pop
+    end
+
     get_target_member(obj, fragments, :create_missing => true) do |target|
+      if target_fragment == ARRAY_PUSH_KEY
+        case target
+        when Hash
+          key = fragment_to_key(target_parent_fragment)
+        when Array
+          key = fragment_to_index(target_parent_fragment)
+        end
+
+        target[key] ||= Array.new
+        if Array === target[key]
+          target[key].push(new_value)
+          return new_value
+        else
+          return
+        end
+      end
+
       case target
       when Hash
         target[fragment_to_key(target_fragment)] = new_value

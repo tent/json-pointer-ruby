@@ -176,6 +176,19 @@ describe JsonPointer do
       let(:expected_parent_value) { ["river", "lake", value, "ocean", "pond", "everything else"] }
 
       it_behaves_like "a setter method"
+
+      context "when appending to array" do
+        let(:path) { %(/water/-) }
+        let(:expected_parent_value) { ["river", "lake", "ocean", "pond", "everything else", value] }
+      end
+
+      context "when array doesn't exist" do
+        let(:path) { %(/water/-) }
+        let(:hash) { Hash.new }
+        let(:expected_parent_value) { [value] }
+
+        it_behaves_like "a setter method"
+      end
     end
 
     context "when in member of array index" do
