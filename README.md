@@ -61,15 +61,20 @@ hash[:foo][:bar] # => [{ :baz => "foobar" }, { :hello => "world" }, { :baz => "w
 pointer.delete
 hash[:foo][:bar] # => [{ :baz => "foobar" }, { :baz => "water" }, { :baz => "bar" }]
 
-## Array index Wildcard (NOTE: this is not part of the spec)
+## Array index Wildcard
 
-pointer = JsonPointer.new(hash, "/foo/bar/*/baz", :symbolize_keys => true)
-pointer.value # => ["foobar", nil, "water"]
+**NOTE:** `~` is specified to append to an array, this implementation also uses it to match any member of an array.
 
-pointer = JsonPointer.new(hash, "/foo/bar/*/fire", :symbolize_keys => true)
+pointer = JsonPointer.new(hash, "/foo/bar/~/baz", :symbolize_keys => true)
+pointer.exists? # => true
+pointer.value # => ["foobar", "water", "bar"]
+
+pointer = JsonPointer.new(hash, "/foo/bar/~/fire", :symbolize_keys => true)
+pointer.exists? # => false
 pointer.value = "dirt"
-pointer.value # => ["dirt", "dirt", "dirt"]
-hash[:foo][:bar] # => [{ :baz => "foobar", :fire => "dirt" }, { :baz => "water", :fire => "dirt" }, { :baz => "bar", :fire => "dirt" }]
+pointer.exists? # => true
+pointer.value # => [nil, nil, nil, "dirt"]
+hash[:foo][:bar] # => [{ :baz => "foobar" }, { :baz => "water" }, { :baz => "bar" }, { :fire => "dirt" }]
 ```
 
 ### Options
@@ -77,6 +82,12 @@ hash[:foo][:bar] # => [{ :baz => "foobar", :fire => "dirt" }, { :baz => "water",
 name | description
 ---- | -----------
 symbolize_keys | Set to `true` if the hash uses symbols for keys. Default is `false`.
+
+## TODO
+
+- Fix nested array wildcards
+- Add more test vectors
+- Refactor
 
 ## Contributing
 

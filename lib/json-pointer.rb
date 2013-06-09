@@ -3,7 +3,7 @@ require "json-pointer/version"
 class JsonPointer
 
   NotFound = Class.new
-  WILDCARD = "*".freeze
+  WILDCARD = "~".freeze
   ARRAY_PUSH_KEY = '-'.freeze
 
   def initialize(hash, path, options = {})
@@ -24,8 +24,12 @@ class JsonPointer
 
   def exists?
     _exists = false
-    get_target_member(@hash, path_fragments.dup) do |target|
-      _exists = true unless NotFound === target
+    get_target_member(@hash, path_fragments.dup) do |target, options={}|
+      if options[:wildcard]
+        _exists = target.any? { |t| !t.nil? && !(NotFound === t) }
+      else
+        _exists = true unless NotFound === target
+      end
     end
     _exists
   end
@@ -49,7 +53,7 @@ class JsonPointer
   end
 
   def get_target_member(obj, fragments, options = {}, &block)
-    return yield(obj) if fragments.empty?
+    return yield(obj, {}) if fragments.empty?
 
     fragment = fragments.shift
     case obj
@@ -64,8 +68,15 @@ class JsonPointer
       get_target_member(obj, fragments, options, &block)
     when Array
       if fragment == WILDCARD
-        obj.each do |i|
-          get_target_member(i || Hash.new, fragments.dup, options, &block)
+        if obj.any?
+          targets = obj.map do |i|
+            get_target_member(i || Hash.new, fragments.dup, options) do |t|
+              t
+            end
+          end
+          yield(targets, :wildcard => true)
+        else
+          NotFound.new
         end
       else
         index = fragment_to_index(fragment)
@@ -94,7 +105,22 @@ class JsonPointer
       target_parent_fragment = fragments.pop
     end
 
-    get_target_member(obj, fragments, :create_missing => true) do |target|
+    get_target_member(obj, fragments.dup, :create_missing => true) do |target, options={}|
+      if options[:wildcard]
+        fragments = fragments.inject([]) do |memo, f|
+          if f == WILDCARD
+            break memo
+          else
+            memo << f
+          end
+          memo
+        end
+
+        path = join_fragments(fragments)
+        pointer = self.class.new(obj, path, @options)
+        pointer.value.push({ fragment_to_key(target_fragment) => new_value })
+      end
+
       if target_fragment == ARRAY_PUSH_KEY
         case target
         when Hash
@@ -116,11 +142,7 @@ class JsonPointer
       when Hash
         target[fragment_to_key(target_fragment)] = new_value
       when Array
-        if target_fragment == WILDCARD
-          target.map! { new_value }
-        else
-          target.insert(fragment_to_index(target_fragment), new_value)
-        end
+        target.insert(fragment_to_index(target_fragment), new_value)
       end
     end
   end
@@ -132,15 +154,24 @@ class JsonPointer
     return if fragments.empty?
 
     target_fragment = fragments.pop
-    get_target_member(obj, fragments) do |target|
-      case target
-      when Hash
-        target.delete(fragment_to_key(target_fragment))
-      when Array
-        if target_fragment == WILDCARD
-          target.replace([])
-        else
-          target.delete_at(fragment_to_index(target_fragment))
+    get_target_member(obj, fragments) do |target, options = {}|
+      if options[:wildcard]
+        target.each do |t|
+          case t
+          when Hash
+            t.delete(fragment_to_key(target_fragment))
+          end
+        end
+      else
+        case target
+        when Hash
+          target.delete(fragment_to_key(target_fragment))
+        when Array
+          if target_fragment == WILDCARD
+            target.replace([])
+          else
+            target.delete_at(fragment_to_index(target_fragment))
+          end
         end
       end
     end
@@ -152,6 +183,15 @@ class JsonPointer
 
   def unescape_fragment(fragment)
     fragment.gsub(/~1/, '/').gsub(/~0/, '~')
+  end
+
+  def join_fragments(fragments)
+    fragments.map { |f| escape_fragment(f) }.join('/')
+  end
+
+  def escape_fragment(fragment)
+    return fragment if fragment == WILDCARD
+    fragment.gsub(/~/, '~0').gsub(/\//, '~1')
   end
 
   def fragment_to_key(fragment)

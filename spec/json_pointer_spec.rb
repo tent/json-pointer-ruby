@@ -62,16 +62,40 @@ describe JsonPointer do
       it_behaves_like "a checker method"
     end
 
-    context "when array wildcard" do
-      let(:path) { %(/fire/dirt/*) }
+    context "when wildcard array index" do
+      let(:path) { %(/water/~) }
 
-      it_behaves_like "a checker method"
+      context "when any member exists" do
+        it "returns true" do
+          expect(pointer.exists?).to be_true
+        end
+      end
+
+      context "when no members exist" do
+        it "returns false" do
+          array_pointer = described_class.new(hash, %(/water), :symbolize_keys => true)
+          array_pointer.value = []
+          expect(pointer.exists?).to be_false
+        end
+      end
     end
 
-    context "when in member of array windcard" do
-      let(:path) { %(/fire/dirt/*/hello) }
+    context "when in member of array wildcard" do
+      context "when any matching member exists" do
+        let(:path) { %(/fire/dirt/~/hello) }
 
-      it_behaves_like "a checker method"
+        it "returns true" do
+          expect(pointer.exists?).to be_true
+        end
+      end
+
+      context "when no matching members" do
+        let(:path) { %(/fire/dirt/~/fictitious) }
+
+        it "returns false" do
+          expect(pointer.exists?).to be_false
+        end
+      end
     end
 
     context "when object member" do
@@ -121,14 +145,14 @@ describe JsonPointer do
     end
 
     context "when array wildcard" do
-      let(:path) { %(/fire/dirt/*) }
+      let(:path) { %(/fire/dirt/~) }
       let(:expected_value) { hash[:fire][:dirt] }
 
       it_behaves_like "a getter method"
     end
 
-    context "when in member of array windcard" do
-      let(:path) { %(/fire/dirt/*/hello) }
+    context "when in member of array wildcard" do
+      let(:path) { %(/fire/dirt/~/hello) }
       let(:expected_value) { ["world", nil] }
 
       it_behaves_like "a getter method"
@@ -200,26 +224,39 @@ describe JsonPointer do
     end
 
     context "when array wildcard" do
-      let(:path) { %(/water/*) }
+      let(:path) { %(/water/~) }
       let(:value) { "baz" }
       let(:asymmetric) { true }
-      let(:expected_parent_value) { [value, value, value, value, value] }
+      let(:expected_parent_value) { hash[:water].concat([value]) }
 
       it_behaves_like "a setter method"
     end
 
-    context "when in member of array windcard" do
-      let(:path) { %(/fire/dirt/*/gash) }
+    context "when in member of array wildcard" do
+      let(:path) { %(/fire/dirt/~/gash) }
       let(:value) { "very deep!" }
       let(:asymmetric) { true }
       let(:expected_parent_value) {
         [
-          { :gash => value, :foo => "bar", :hello => "world" },
-          { :gash => value, :baz => "biz" }
+          { :foo => "bar", :hello => "world" },
+          { :baz => "biz" },
+          { :gash => value }
         ]
       }
 
-      it_behaves_like "a setter method"
+      context "when parent member exists" do
+        it "sets referenced member value" do
+          pointer.value = value
+
+          unless asymmetric
+            expect(pointer.value).to eql(value)
+          end
+
+          if expected_parent_value
+            expect(parent_pointer.value).to eql(expected_parent_value)
+          end
+        end
+      end
     end
 
     context "when object member" do
@@ -274,15 +311,15 @@ describe JsonPointer do
     end
 
     context "when array wildcard" do
-      let(:path) { %(/water/*) }
+      let(:path) { %(/water/~) }
       let(:asymmetric) { true }
       let(:expected_parent_value) { [] }
 
       it_behaves_like "a delete method"
     end
 
-    context "when in member of array windcard" do
-      let(:path) { %(/fire/dirt/*/foo) }
+    context "when in member of array wildcard" do
+      let(:path) { %(/fire/dirt/~/foo) }
       let(:asymmetric) { true }
       let(:expected_parent_value) {
         [
