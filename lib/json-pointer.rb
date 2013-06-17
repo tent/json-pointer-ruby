@@ -6,6 +6,19 @@ class JsonPointer
   WILDCARD = "~".freeze
   ARRAY_PUSH_KEY = '-'.freeze
 
+  def self.escape_fragment(fragment)
+    return fragment if fragment == WILDCARD
+    fragment.gsub(/~/, '~0').gsub(/\//, '~1')
+  end
+
+  def self.unescape_fragment(fragment)
+    fragment.gsub(/~1/, '/').gsub(/~0/, '~')
+  end
+
+  def self.join_fragments(fragments)
+    fragments.map { |f| escape_fragment(f) }.join('/')
+  end
+
   def initialize(hash, path, options = {})
     @hash, @path, @options = hash, path, options
   end
@@ -181,17 +194,16 @@ class JsonPointer
     @path_fragments ||= @path.sub(%r{\A/}, '').split("/").map { |fragment| unescape_fragment(fragment) }
   end
 
+  def escape_fragment(fragment)
+    JsonPointer.escape_fragment(fragment)
+  end
+
   def unescape_fragment(fragment)
-    fragment.gsub(/~1/, '/').gsub(/~0/, '~')
+    JsonPointer.unescape_fragment(fragment)
   end
 
   def join_fragments(fragments)
-    fragments.map { |f| escape_fragment(f) }.join('/')
-  end
-
-  def escape_fragment(fragment)
-    return fragment if fragment == WILDCARD
-    fragment.gsub(/~/, '~0').gsub(/\//, '~1')
+    JsonPointer.join_fragments(fragments)
   end
 
   def fragment_to_key(fragment)
